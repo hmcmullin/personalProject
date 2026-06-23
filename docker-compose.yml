@@ -1,0 +1,30 @@
+services:
+  nextjs_postgres:
+    image: postgres:15-alpine
+    container_name: nextjs_postgres
+    environment:
+      POSTGRES_USER: your_user
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: your_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  nextjs_web:
+    build: .
+    container_name: nextjs_web
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules/
+      - /app/.next/
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://your_user:your_password@nextjs_postgres:5432/your_db
+    depends_on:
+      - nextjs_postgres
+
+volumes:
+  postgres_data:

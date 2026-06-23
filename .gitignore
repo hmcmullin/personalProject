@@ -1,0 +1,44 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing & coverage
+/coverage
+
+# next.js build output
+/.next/
+/out/
+/build
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# env files (NEVER commit these)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# docker local data
+/*_data/
+/data/
+
+# logs
+logs
+*.log
+
+# IDEs & OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.pem
