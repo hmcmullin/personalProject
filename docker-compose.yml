@@ -17,9 +17,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
-      - /app/node_modules/
-      - /app/.next/
+    - .:/app
+    - /app/node_modules
+    - /app/.next
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://your_user:your_password@nextjs_postgres:5432/your_db
