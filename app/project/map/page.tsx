@@ -8,6 +8,8 @@ import {
   saveShapeToDatabase,
   retrieveShapesFromDB,
   ShapeData,
+  retrieveLinesFromDB,
+  saveLineToDatabase,
 } from "@/app/lib/actions";
 
 // marker information structure
@@ -21,11 +23,25 @@ type MarkerData = {
   dateCreated: string;
 };
 
+// line information structure
+type LineData = {
+  id: string;
+  userId: string;
+  title: string;
+  lat: number;
+  lng: number;
+  notes: string;
+  dateCreated: Date;
+  color: string;
+  geoJson: string;
+};
+
 export default function MyPage() {
   // manage state for features/functions
   const [isSatellite, setIsSatellite] = useState(false);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [shapes, setShapes] = useState<ShapeData[]>([]);
+  const [lines, setLines] = useState<LineData[]>([]);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [currentShapePoints, setCurrentShapePoints] = useState<
     [number, number][]
@@ -40,12 +56,65 @@ export default function MyPage() {
 
         const savedShapes = await retrieveShapesFromDB();
         setShapes(savedShapes || []);
+
+        const savedLines = await retrieveLinesFromDB();
+        setLines(savedLines || []);
       } catch (error) {
         console.error("Failed to load map data:", error);
       }
     }
     loadData();
   }, []);
+
+  // if conditions met, stores points and related data to create a line
+  const handleCreateLine = async () => {
+    if (currentShapePoints.length < 2) return;
+
+    const lineTitle = prompt("Enter a name for this line:");
+    if (!lineTitle) return;
+
+    const lineColor = prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
+    const notes = prompt("Enter any notes or comments for this line:") || "";
+
+    // convert to GeoJSON's format (reverse order)
+    const geoJsonCoordinates = currentShapePoints.map(([lat, lng]) => [
+      lng,
+      lat,
+    ]);
+
+    const customGeoJson = {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: geoJsonCoordinates,
+      },
+    };
+
+    // line information structure
+    const newLine: LineData = {
+      id: crypto.randomUUID(),
+      userId: "Temporary User",
+      title: lineTitle,
+      notes: notes,
+      lat: currentShapePoints[0][0],
+      lng: currentShapePoints[0][1],
+      dateCreated: new Date(),
+      color: lineColor,
+      geoJson: JSON.stringify(customGeoJson),
+    };
+
+    // update ui and push line to db
+    setLines((prev) => [...prev, newLine]);
+    setIsDrawingMode(false);
+    setCurrentShapePoints([]);
+
+    try {
+      await saveLineToDatabase(newLine);
+    } catch (error) {
+      console.error("Failed to save custom line to DB:", error);
+    }
+  };
 
   // if conditions met, stores points and related data to create a shape
   const handleCreateShape = async () => {
@@ -184,6 +253,21 @@ export default function MyPage() {
               Save Shape ({currentShapePoints.length} points)
             </button>
             <button
+              onClick={handleCreateLine}
+              disabled={currentShapePoints.length < 2}
+              style={{
+                padding: "8px 16px",
+                background: currentShapePoints.length < 2 ? "#ccc" : "#008CBA",
+                color: "white",
+                borderRadius: "4px",
+                border: "none",
+                cursor:
+                  currentShapePoints.length < 2 ? "not-allowed" : "pointer",
+              }}
+            >
+              Save Line ({currentShapePoints.length} points)
+            </button>
+            <button
               onClick={() => {
                 setIsDrawingMode(false);
                 setCurrentShapePoints([]);
@@ -210,6 +294,7 @@ export default function MyPage() {
         <Map
           isSatellite={isSatellite}
           markers={markers}
+          lines={lines}
           shapes={shapes}
           onMapClick={handleMapClick}
           isDrawingMode={isDrawingMode}

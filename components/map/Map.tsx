@@ -34,10 +34,23 @@ type MarkerData = {
   dateCreated: string;
 };
 
+export type LineData = {
+  id: string;
+  userId: string;
+  title: string;
+  lat: number;
+  lng: number;
+  notes: string;
+  dateCreated: Date;
+  color: string;
+  geoJson: string;
+};
+
 // defines data and handlers to show map state
 type MapProps = {
   isSatellite: boolean;
   markers: MarkerData[];
+  lines: LineData[];
   shapes: ShapeData[];
   onMapClick: (lat: number, lng: number) => void;
   isDrawingMode: boolean;
@@ -62,6 +75,7 @@ function MapClickHandler({
 export default function Map({
   isSatellite,
   markers,
+  lines,
   shapes,
   onMapClick,
   isDrawingMode,
@@ -118,6 +132,24 @@ export default function Map({
             </div>
           </Popup>
         </Marker>
+      ))}
+
+      {/* create Lines from db */}
+      {lines.map((line) => (
+        <GeoJSON
+          key={line.id}
+          data={JSON.parse(line.geoJson)}
+          style={{
+            color: line.color,
+          }}
+        >
+          <Popup>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: "bold" }}>{line.title}</h3>
+              {line.notes && <p style={{ margin: "5px 0 0" }}>{line.notes}</p>}
+            </div>
+          </Popup>
+        </GeoJSON>
       ))}
 
       {/* if creating a shape, show dots and lines to outline */}
