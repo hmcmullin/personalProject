@@ -19,6 +19,7 @@ type MarkerData = {
   lng: number;
   title: string;
   activity: string;
+  color: string;
   dateCreated: string;
 };
 
@@ -127,6 +128,7 @@ export async function saveMarkerToDatabase(marker: MarkerData) {
     title: z.string().min(1),
     activity: z.string().min(1),
     dateCreated: z.string(),
+    color: z.string().min(1),
   });
 
   // uses zod validated data from validated values to pass into db
@@ -134,8 +136,8 @@ export async function saveMarkerToDatabase(marker: MarkerData) {
 
   try {
     const query = `
-      INSERT INTO markers (id, user_id, lat, lng, title, activity, date_created)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO markers (id, user_id, lat, lng, title, activity, date_created, color)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
     const values = [
@@ -146,6 +148,7 @@ export async function saveMarkerToDatabase(marker: MarkerData) {
       validatedMarker.title,
       validatedMarker.activity,
       validatedMarker.dateCreated,
+      validatedMarker.color,
     ];
 
     await pool.query(query, values);
@@ -169,6 +172,7 @@ export async function retrieveMarkersFromDB() {
       title: row.title,
       activity: row.activity,
       dateCreated: row.date_created.toISOString(),
+      color: row.color,
     }));
   } catch (error) {
     console.error("Failed to retrieve Markers: ", error);

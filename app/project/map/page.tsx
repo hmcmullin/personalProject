@@ -20,6 +20,7 @@ type MarkerData = {
   lng: number;
   title: string;
   activity: string;
+  color: string;
   dateCreated: string;
 };
 
@@ -180,6 +181,7 @@ export default function MyPage() {
 
     const markerTitle = prompt("Enter location title:");
     const markerActivity = prompt("Enter activity:");
+    const markerColor = prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
 
     // marker info structure
     const newMarker: MarkerData = {
@@ -189,6 +191,7 @@ export default function MyPage() {
       lng: lng,
       title: markerTitle || "Untitled",
       activity: markerActivity || "General",
+      color: markerColor,
       dateCreated: new Date().toISOString(),
     };
 
