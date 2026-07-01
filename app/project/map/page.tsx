@@ -10,6 +10,9 @@ import {
   ShapeData,
   retrieveLinesFromDB,
   saveLineToDatabase,
+  removeMarkerFromDB,
+  removeShapeFromDB,
+  removeLineFromDB,
 } from "@/app/lib/actions";
 
 // marker information structure
@@ -40,6 +43,7 @@ type LineData = {
 export default function MyPage() {
   // manage state for features/functions
   const [isSatellite, setIsSatellite] = useState(false);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [shapes, setShapes] = useState<ShapeData[]>([]);
   const [lines, setLines] = useState<LineData[]>([]);
@@ -117,6 +121,31 @@ export default function MyPage() {
     }
   };
 
+  // funtion that handles deletion
+  const handleDeleteItem = async (
+    itemId: string,
+    type: "marker" | "shape" | "line",
+  ) => {
+    if (!isDeleteMode) return;
+
+    try {
+      if (type === "marker") {
+        await removeMarkerFromDB(itemId);
+        setMarkers((prev) => prev.filter((item) => item.id !== itemId));
+      } else if (type === "shape") {
+        await removeShapeFromDB(itemId);
+        setShapes((prev) => prev.filter((item) => item.id !== itemId));
+      } else if (type === "line") {
+        await removeLineFromDB(itemId);
+        setLines((prev) => prev.filter((item) => item.id !== itemId));
+      }
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+    }
+
+    setIsDeleteMode(false);
+  };
+
   // if conditions met, stores points and related data to create a shape
   const handleCreateShape = async () => {
     if (currentShapePoints.length < 3) return;
@@ -174,6 +203,10 @@ export default function MyPage() {
   // gathers coordinates on map click
   const handleMapClick = async (lat: number, lng: number) => {
     // creates array of coordinates for shapes
+    if (isDeleteMode) {
+      return;
+    }
+
     if (isDrawingMode) {
       setCurrentShapePoints((prev) => [...prev, [lat, lng]]);
       return;
@@ -181,7 +214,8 @@ export default function MyPage() {
 
     const markerTitle = prompt("Enter location title:");
     const markerActivity = prompt("Enter activity:");
-    const markerColor = prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
+    const markerColor =
+      prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
 
     // marker info structure
     const newMarker: MarkerData = {
@@ -290,6 +324,24 @@ export default function MyPage() {
         )}
       </div>
 
+      {/* allows users to enter delete mode */}
+      <div className="flex justify-center gap-4 mb-4">
+        <button
+          onClick={() => setIsDeleteMode(!isDeleteMode)}
+          style={{
+            backgroundColor: isDeleteMode ? "#dc2626" : "#3b82f6",
+            color: "white",
+            padding: "10px 15px",
+            borderRadius: "5px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {isDeleteMode ? "Cancel Delete" : "Delete Item Tool"}
+        </button>
+      </div>
+
       <div
         className="flex justify-center"
         style={{ height: "800px", width: "98%", margin: "0 auto" }}
@@ -301,9 +353,21 @@ export default function MyPage() {
           shapes={shapes}
           onMapClick={handleMapClick}
           isDrawingMode={isDrawingMode}
+          isDeleteMode={isDeleteMode}
           currentShapePoints={currentShapePoints}
+          onAssetClick={handleDeleteItem}
         />
       </div>
     </div>
   );
 }
+
+/* 
+  TODO: IMPLEMENT DEDICATED "DELETE TOOL" MODE
+  
+  1. Add 'isDeleteMode' state and a toggle button to MyPage.
+  2. Pass 'isDeleteMode' as a prop down to the Map component.
+  3. Add 'eventHandlers={{ click: () => {} }}' to the Marker and both GeoJSON loops in Map.
+  4. If 'isDeleteMode' is true on click, get the item ID, call the delete function, and turn off the mode.
+  5. Add 'if (isDeleteMode) return;' to the top of handleMapClick to stop new markers from spawning when deleting.
+*/

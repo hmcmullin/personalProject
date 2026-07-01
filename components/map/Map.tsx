@@ -12,7 +12,12 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJSON } from "react-leaflet";
-import { ShapeData } from "@/app/lib/actions";
+import {
+  removeMarkerFromDB,
+  removeShapeFromDB,
+  ShapeData,
+  removeLineFromDB,
+} from "@/app/lib/actions";
 
 // fix leaflet css issues
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -30,12 +35,12 @@ const createColoredIcon = (color: string) => {
       <path fill="${color}" stroke="#FFF" stroke-width="1.5" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
     </svg>
   `;
-  
+
   return L.divIcon({
     className: "custom-colored-marker",
     html: svgTemplate,
     iconSize: [32, 32],
-    iconAnchor: [16, 32], 
+    iconAnchor: [16, 32],
     popupAnchor: [0, -32],
   });
 };
@@ -72,7 +77,9 @@ type MapProps = {
   shapes: ShapeData[];
   onMapClick: (lat: number, lng: number) => void;
   isDrawingMode: boolean;
+  isDeleteMode: boolean;
   currentShapePoints: [number, number][];
+  onAssetClick: (itemId: string, type: "marker" | "shape" | "line") => void;
 };
 
 // function that on user clicking, stores coordinates where clicked
@@ -97,7 +104,9 @@ export default function Map({
   shapes,
   onMapClick,
   isDrawingMode,
+  isDeleteMode,
   currentShapePoints,
+  onAssetClick,
 }: MapProps) {
   return (
     <MapContainer
@@ -128,6 +137,9 @@ export default function Map({
             fillColor: shape.color,
             fillOpacity: 0.3,
           }}
+          eventHandlers={{
+            click: () => onAssetClick(shape.id, "shape"),
+          }}
         >
           <Popup>
             <div>
@@ -142,7 +154,14 @@ export default function Map({
 
       {/* create markers from db */}
       {markers.map((marker) => (
-        <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={createColoredIcon(marker.color || "blue")}>
+        <Marker
+          key={marker.id}
+          position={[marker.lat, marker.lng]}
+          icon={createColoredIcon(marker.color || "blue")}
+          eventHandlers={{
+            click: () => onAssetClick(marker.id, "marker"),
+          }}
+        >
           <Popup>
             <div>
               <h3>{marker.title}</h3>
@@ -159,6 +178,9 @@ export default function Map({
           data={JSON.parse(line.geoJson)}
           style={{
             color: line.color,
+          }}
+          eventHandlers={{
+            click: () => onAssetClick(line.id, "line"),
           }}
         >
           <Popup>

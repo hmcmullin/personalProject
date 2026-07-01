@@ -119,6 +119,19 @@ export async function retrieveLinesFromDB() {
   }
 }
 
+export async function removeLineFromDB(id: string) {
+  try {
+    const result = await pool.query(
+      "DELETE FROM lines WHERE id = $1 RETURNING *",
+      [id],
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Failed to delete Line: ", error);
+    return [];
+  }
+}
+
 export async function saveMarkerToDatabase(marker: MarkerData) {
   const validatedValues = z.object({
     id: z.string().uuid(),
@@ -176,6 +189,19 @@ export async function retrieveMarkersFromDB() {
     }));
   } catch (error) {
     console.error("Failed to retrieve Markers: ", error);
+    return [];
+  }
+}
+
+export async function removeMarkerFromDB(id: string) {
+  try {
+    const result = await pool.query(
+      "DELETE FROM markers WHERE id = $1 RETURNING *",
+      [id],
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Failed to delete Marker: ", error);
     return [];
   }
 }
@@ -248,6 +274,19 @@ export async function retrieveShapesFromDB() {
     }));
   } catch (error) {
     console.error("Failed to retrieve Shapes: ", error);
+    return [];
+  }
+}
+
+export async function removeShapeFromDB(id: string) {
+  try {
+    const result = await pool.query(
+      "DELETE FROM shapes WHERE id = $1 RETURNING *",
+      [id],
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Failed to delete Shape: ", error);
     return [];
   }
 }
