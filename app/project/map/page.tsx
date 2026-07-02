@@ -1,245 +1,28 @@
 "use client";
-
-import { useState, useEffect } from "react";
+;
 import Map from "@/components/map/Map";
-import {
-  saveMarkerToDatabase,
-  retrieveMarkersFromDB,
-  saveShapeToDatabase,
-  retrieveShapesFromDB,
-  ShapeData,
-  retrieveLinesFromDB,
-  saveLineToDatabase,
-  removeMarkerFromDB,
-  removeShapeFromDB,
-  removeLineFromDB,
-} from "@/app/lib/actions";
-
-// marker information structure
-type MarkerData = {
-  id: string;
-  userId: string;
-  lat: number;
-  lng: number;
-  title: string;
-  activity: string;
-  color: string;
-  dateCreated: string;
-};
-
-// line information structure
-type LineData = {
-  id: string;
-  userId: string;
-  title: string;
-  lat: number;
-  lng: number;
-  notes: string;
-  dateCreated: Date;
-  color: string;
-  geoJson: string;
-};
+import { useMapData } from "@/hooks/mapActions";
 
 export default function MyPage() {
-  // manage state for features/functions
-  const [isSatellite, setIsSatellite] = useState(false);
-  const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [markers, setMarkers] = useState<MarkerData[]>([]);
-  const [shapes, setShapes] = useState<ShapeData[]>([]);
-  const [lines, setLines] = useState<LineData[]>([]);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [currentShapePoints, setCurrentShapePoints] = useState<
-    [number, number][]
-  >([]);
+  // calls mapActions hook to get all the state and handlers
+  const {
+    isSatellite,
+    setIsSatellite,
+    isDeleteMode,
+    setIsDeleteMode,
+    markers,
+    shapes,
+    lines,
+    isDrawingMode,
+    setIsDrawingMode,
+    currentShapePoints,
+    setCurrentShapePoints,
+    handleCreateLine,
+    handleDeleteItem,
+    handleCreateShape,
+    handleMapClick,
+  } = useMapData();
 
-  // loads saved information onto map
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const savedMarkers = await retrieveMarkersFromDB();
-        setMarkers(savedMarkers || []);
-
-        const savedShapes = await retrieveShapesFromDB();
-        setShapes(savedShapes || []);
-
-        const savedLines = await retrieveLinesFromDB();
-        setLines(savedLines || []);
-      } catch (error) {
-        console.error("Failed to load map data:", error);
-      }
-    }
-    loadData();
-  }, []);
-
-  // if conditions met, stores points and related data to create a line
-  const handleCreateLine = async () => {
-    if (currentShapePoints.length < 2) return;
-
-    const lineTitle = prompt("Enter a name for this line:");
-    if (!lineTitle) return;
-
-    const lineColor = prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
-    const notes = prompt("Enter any notes or comments for this line:") || "";
-
-    // convert to GeoJSON's format (reverse order)
-    const geoJsonCoordinates = currentShapePoints.map(([lat, lng]) => [
-      lng,
-      lat,
-    ]);
-
-    const customGeoJson = {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: geoJsonCoordinates,
-      },
-    };
-
-    // line information structure
-    const newLine: LineData = {
-      id: crypto.randomUUID(),
-      userId: "Temporary User",
-      title: lineTitle,
-      notes: notes,
-      lat: currentShapePoints[0][0],
-      lng: currentShapePoints[0][1],
-      dateCreated: new Date(),
-      color: lineColor,
-      geoJson: JSON.stringify(customGeoJson),
-    };
-
-    // update ui and push line to db
-    setLines((prev) => [...prev, newLine]);
-    setIsDrawingMode(false);
-    setCurrentShapePoints([]);
-
-    try {
-      await saveLineToDatabase(newLine);
-    } catch (error) {
-      console.error("Failed to save custom line to DB:", error);
-    }
-  };
-
-  // funtion that handles deletion
-  const handleDeleteItem = async (
-    itemId: string,
-    type: "marker" | "shape" | "line",
-  ) => {
-    if (!isDeleteMode) return;
-
-    try {
-      if (type === "marker") {
-        await removeMarkerFromDB(itemId);
-        setMarkers((prev) => prev.filter((item) => item.id !== itemId));
-      } else if (type === "shape") {
-        await removeShapeFromDB(itemId);
-        setShapes((prev) => prev.filter((item) => item.id !== itemId));
-      } else if (type === "line") {
-        await removeLineFromDB(itemId);
-        setLines((prev) => prev.filter((item) => item.id !== itemId));
-      }
-    } catch (error) {
-      console.error("Failed to delete item:", error);
-    }
-
-    setIsDeleteMode(false);
-  };
-
-  // if conditions met, stores points and related data to create a shape
-  const handleCreateShape = async () => {
-    if (currentShapePoints.length < 3) return;
-
-    const shapeTitle = prompt("Enter a name for this region/state:");
-    if (!shapeTitle) return;
-
-    const shapeColor = prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
-    const notes = prompt("Enter any notes or comments for this region:") || "";
-
-    // convert to GeoJSON's format (reverse order)
-    const geoJsonCoordinates = currentShapePoints.map(([lat, lng]) => [
-      lng,
-      lat,
-    ]);
-
-    // connects the starting and ending points of the shape
-    const firstPoint = [currentShapePoints[0][1], currentShapePoints[0][0]];
-    geoJsonCoordinates.push(firstPoint);
-
-    const customGeoJson = {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Polygon",
-        coordinates: [geoJsonCoordinates],
-      },
-    };
-
-    // shape information structure
-    const newShape: ShapeData = {
-      id: crypto.randomUUID(),
-      userId: "Temporary User",
-      title: shapeTitle,
-      notes: notes,
-      lat: currentShapePoints[0][0],
-      lng: currentShapePoints[0][1],
-      dateCreated: new Date(),
-      color: shapeColor,
-      geoJson: JSON.stringify(customGeoJson),
-    };
-
-    // update ui and push shape to db
-    setShapes((prev) => [...prev, newShape]);
-    setIsDrawingMode(false);
-    setCurrentShapePoints([]);
-
-    try {
-      await saveShapeToDatabase(newShape);
-    } catch (error) {
-      console.error("Failed to save custom shape to DB:", error);
-    }
-  };
-
-  // gathers coordinates on map click
-  const handleMapClick = async (lat: number, lng: number) => {
-    // creates array of coordinates for shapes
-    if (isDeleteMode) {
-      return;
-    }
-
-    if (isDrawingMode) {
-      setCurrentShapePoints((prev) => [...prev, [lat, lng]]);
-      return;
-    }
-
-    const markerTitle = prompt("Enter location title:");
-    const markerActivity = prompt("Enter activity:");
-    const markerColor =
-      prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
-
-    // marker info structure
-    const newMarker: MarkerData = {
-      id: crypto.randomUUID(),
-      userId: "Temporary User",
-      lat: lat,
-      lng: lng,
-      title: markerTitle || "Untitled",
-      activity: markerActivity || "General",
-      color: markerColor,
-      dateCreated: new Date().toISOString(),
-    };
-
-    // update ui and push marker to db
-    setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
-
-    try {
-      await saveMarkerToDatabase(newMarker);
-    } catch (error) {
-      console.error("Failed to save marker:", error);
-    }
-  };
-
-  // contains page contents
   return (
     <div>
       <h1 className="flex justify-center m-5">Welcome to your map!</h1>
@@ -361,13 +144,3 @@ export default function MyPage() {
     </div>
   );
 }
-
-/* 
-  TODO: IMPLEMENT DEDICATED "DELETE TOOL" MODE
-  
-  1. Add 'isDeleteMode' state and a toggle button to MyPage.
-  2. Pass 'isDeleteMode' as a prop down to the Map component.
-  3. Add 'eventHandlers={{ click: () => {} }}' to the Marker and both GeoJSON loops in Map.
-  4. If 'isDeleteMode' is true on click, get the item ID, call the delete function, and turn off the mode.
-  5. Add 'if (isDeleteMode) return;' to the top of handleMapClick to stop new markers from spawning when deleting.
-*/

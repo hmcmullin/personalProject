@@ -12,12 +12,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJSON } from "react-leaflet";
-import {
-  removeMarkerFromDB,
-  removeShapeFromDB,
-  ShapeData,
-  removeLineFromDB,
-} from "@/app/lib/actions";
+import { MarkerData, LineData, ShapeData } from "@/app/lib/data";
 
 // fix leaflet css issues
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -43,30 +38,6 @@ const createColoredIcon = (color: string) => {
     iconAnchor: [16, 32],
     popupAnchor: [0, -32],
   });
-};
-
-// stores data for markers
-type MarkerData = {
-  id: string;
-  userId: string;
-  lat: number;
-  lng: number;
-  title: string;
-  activity: string;
-  color: string;
-  dateCreated: string;
-};
-
-export type LineData = {
-  id: string;
-  userId: string;
-  title: string;
-  lat: number;
-  lng: number;
-  notes: string;
-  dateCreated: Date;
-  color: string;
-  geoJson: string;
 };
 
 // defines data and handlers to show map state
