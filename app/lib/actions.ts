@@ -1,94 +1,81 @@
 "use server";
 
-// a more efficient query system from PostgreSQL || "pg"
 import { Pool } from "pg";
 import { z } from "zod";
+import { MarkerData, LineData, ShapeData } from "./data";
 
-// DB connection
+// db connection
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
     "postgresql://admin:password@localhost:5432/personalProjectDB",
 });
 
-// types here to ensure matching format between db and page
-type MarkerData = {
-  id: string;
-  userId: string;
-  lat: number;
-  lng: number;
-  title: string;
-  activity: string;
-  color: string;
-  dateCreated: string;
-};
+// zod schema validation for lines and shapes
+const ObjectSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().min(1),
+  title: z.string().min(1, "Title is required").max(100),
+  notes: z.string().max(500),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  dateCreated: z.coerce.date(),
+  color: z.string().min(1),
+  geoJson: z.string().refine((val) => {
+    try {
+      JSON.parse(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Invalid GeoJSON string format"),
+});
 
-export type ShapeData = {
-  id: string;
-  userId: string;
-  title: string;
-  lat: number;
-  lng: number;
-  notes: string;
-  dateCreated: Date;
-  color: string;
-  geoJson: string;
-};
+// zod schema validation for markers
+const MarkerSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  title: z.string().min(1),
+  activity: z.string().min(1),
+  dateCreated: z.string(),
+  color: z.string().min(1),
+});
 
-export type LineData = {
-  id: string;
-  userId: string;
-  title: string;
-  lat: number;
-  lng: number;
-  notes: string;
-  dateCreated: Date;
-  color: string;
-  geoJson: string;
-};
+// helper function to delete any object
+async function deleteItemFromTable(table: string, id: string) {
+  try {
+    const result = await pool.query(
+      `DELETE FROM ${table} WHERE id = $1 RETURNING *`,
+      [id],
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error(`Failed to delete from ${table}: `, error);
+    return null;
+  }
+}
 
+// line functions
 export async function saveLineToDatabase(line: LineData) {
-  const LineSchema = z.object({
-    id: z.string().uuid(),
-    userId: z.string().min(1),
-    title: z.string().min(1, "Title is required").max(100),
-    notes: z.string().max(500),
-    lat: z.number().min(-90).max(90),
-    lng: z.number().min(-180).max(180),
-    dateCreated: z.coerce.date(),
-    color: z.string().min(1),
-    geoJson: z.string().refine((val) => {
-      // ensures valid geoJson format
-      try {
-        JSON.parse(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Invalid GeoJSON string format"),
-  });
-
-  // uses zod verified data to pass to db
-  const validatedLine = LineSchema.parse(line);
-
+  const validated = ObjectSchema.parse(line);
   try {
     const query = `
       INSERT INTO lines (id, user_id, title, notes, lat, lng, date_created, color, geojson)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `;
-
     const values = [
-      validatedLine.id,
-      validatedLine.userId,
-      validatedLine.title,
-      validatedLine.notes,
-      validatedLine.lat,
-      validatedLine.lng,
-      validatedLine.dateCreated,
-      validatedLine.color,
-      validatedLine.geoJson,
+      validated.id,
+      validated.userId,
+      validated.title,
+      validated.notes,
+      validated.lat,
+      validated.lng,
+      validated.dateCreated,
+      validated.color,
+      validated.geoJson,
     ];
-
     await pool.query(query, values);
     console.log("Line successfully saved");
   } catch (error) {
@@ -119,51 +106,53 @@ export async function retrieveLinesFromDB() {
   }
 }
 
-export async function removeLineFromDB(id: string) {
+export async function updateLineInDB(line: LineData) {
+  const validated = ObjectSchema.parse(line);
   try {
-    const result = await pool.query(
-      "DELETE FROM lines WHERE id = $1 RETURNING *",
-      [id],
-    );
-    return result.rows[0] || null;
+    const query = `
+      UPDATE lines 
+      SET title = $1, notes = $2, lat = $3, lng = $4, color = $5, geojson = $6
+      WHERE id = $7
+    `;
+    const values = [
+      validated.title,
+      validated.notes,
+      validated.lat,
+      validated.lng,
+      validated.color,
+      validated.geoJson,
+      validated.id,
+    ];
+    await pool.query(query, values);
+    console.log("Line successfully updated");
   } catch (error) {
-    console.error("Failed to delete Line: ", error);
-    return [];
+    console.error("Database Error updating line:", error);
+    throw new Error("Failed to update line.");
   }
 }
 
+export async function removeLineFromDB(id: string) {
+  return deleteItemFromTable("lines", id);
+}
+
+// marker functions
 export async function saveMarkerToDatabase(marker: MarkerData) {
-  const validatedValues = z.object({
-    id: z.string().uuid(),
-    userId: z.string().min(1),
-    lat: z.number().min(-90).max(90),
-    lng: z.number().min(-180).max(180),
-    title: z.string().min(1),
-    activity: z.string().min(1),
-    dateCreated: z.string(),
-    color: z.string().min(1),
-  });
-
-  // uses zod validated data from validated values to pass into db
-  const validatedMarker = validatedValues.parse(marker);
-
+  const validated = MarkerSchema.parse(marker);
   try {
     const query = `
       INSERT INTO markers (id, user_id, lat, lng, title, activity, date_created, color)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
-
     const values = [
-      validatedMarker.id,
-      validatedMarker.userId,
-      validatedMarker.lat,
-      validatedMarker.lng,
-      validatedMarker.title,
-      validatedMarker.activity,
-      validatedMarker.dateCreated,
-      validatedMarker.color,
+      validated.id,
+      validated.userId,
+      validated.lat,
+      validated.lng,
+      validated.title,
+      validated.activity,
+      validated.dateCreated,
+      validated.color,
     ];
-
     await pool.query(query, values);
     console.log("Marker successfully saved");
   } catch (error) {
@@ -193,61 +182,53 @@ export async function retrieveMarkersFromDB() {
   }
 }
 
-export async function removeMarkerFromDB(id: string) {
+export async function updateMarkerInDB(marker: MarkerData) {
+  const validated = MarkerSchema.parse(marker);
   try {
-    const result = await pool.query(
-      "DELETE FROM markers WHERE id = $1 RETURNING *",
-      [id],
-    );
-    return result.rows[0] || null;
+    const query = `
+      UPDATE markers 
+      SET lat = $1, lng = $2, title = $3, activity = $4, color = $5
+      WHERE id = $6
+    `;
+    const values = [
+      validated.lat,
+      validated.lng,
+      validated.title,
+      validated.activity,
+      validated.color,
+      validated.id,
+    ];
+    await pool.query(query, values);
+    console.log("Marker successfully updated");
   } catch (error) {
-    console.error("Failed to delete Marker: ", error);
-    return [];
+    console.error("Database Error updating marker:", error);
+    throw new Error("Failed to update marker.");
   }
 }
 
+export async function removeMarkerFromDB(id: string) {
+  return deleteItemFromTable("markers", id);
+}
+
+// shape functions
 export async function saveShapeToDatabase(shape: ShapeData) {
-  const ShapeSchema = z.object({
-    id: z.string().uuid(),
-    userId: z.string().min(1),
-    title: z.string().min(1, "Title is required").max(100),
-    notes: z.string().max(500),
-    lat: z.number().min(-90).max(90),
-    lng: z.number().min(-180).max(180),
-    dateCreated: z.coerce.date(),
-    color: z.string().min(1),
-    geoJson: z.string().refine((val) => {
-      // ensures valid geoJson format
-      try {
-        JSON.parse(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Invalid GeoJSON string format"),
-  });
-
-  // uses zod verified data to pass to db
-  const validatedShape = ShapeSchema.parse(shape);
-
+  const validated = ObjectSchema.parse(shape);
   try {
     const query = `
       INSERT INTO shapes (id, user_id, title, notes, lat, lng, date_created, color, geojson)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `;
-
     const values = [
-      validatedShape.id,
-      validatedShape.userId,
-      validatedShape.title,
-      validatedShape.notes,
-      validatedShape.lat,
-      validatedShape.lng,
-      validatedShape.dateCreated,
-      validatedShape.color,
-      validatedShape.geoJson,
+      validated.id,
+      validated.userId,
+      validated.title,
+      validated.notes,
+      validated.lat,
+      validated.lng,
+      validated.dateCreated,
+      validated.color,
+      validated.geoJson,
     ];
-
     await pool.query(query, values);
     console.log("Shape successfully saved");
   } catch (error) {
@@ -278,15 +259,31 @@ export async function retrieveShapesFromDB() {
   }
 }
 
-export async function removeShapeFromDB(id: string) {
+export async function updateShapeInDB(shape: ShapeData) {
+  const validated = ObjectSchema.parse(shape);
   try {
-    const result = await pool.query(
-      "DELETE FROM shapes WHERE id = $1 RETURNING *",
-      [id],
-    );
-    return result.rows[0] || null;
+    const query = `
+      UPDATE shapes 
+      SET title = $1, notes = $2, lat = $3, lng = $4, color = $5, geojson = $6
+      WHERE id = $7
+    `;
+    const values = [
+      validated.title,
+      validated.notes,
+      validated.lat,
+      validated.lng,
+      validated.color,
+      validated.geoJson,
+      validated.id,
+    ];
+    await pool.query(query, values);
+    console.log("Shape successfully updated");
   } catch (error) {
-    console.error("Failed to delete Shape: ", error);
-    return [];
+    console.error("Database Error updating shape:", error);
+    throw new Error("Failed to update shape.");
   }
+}
+
+export async function removeShapeFromDB(id: string) {
+  return deleteItemFromTable("shapes", id);
 }
