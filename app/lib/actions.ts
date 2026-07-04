@@ -12,36 +12,40 @@ const pool = new Pool({
 });
 
 // zod schema validation for lines and shapes
-const ObjectSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().min(1),
-  title: z.string().min(1, "Title is required").max(100),
-  notes: z.string().max(500),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  dateCreated: z.coerce.date(),
-  color: z.string().min(1),
-  geoJson: z.string().refine((val) => {
-    try {
-      JSON.parse(val);
-      return true;
-    } catch {
-      return false;
-    }
-  }, "Invalid GeoJSON string format"),
-});
+const ObjectSchema = z
+  .object({
+    id: z.string().uuid(),
+    userId: z.string().min(1),
+    title: z.string().min(1, "Title is required").max(100),
+    notes: z.string().max(500),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    dateCreated: z.coerce.date(),
+    color: z.string().min(1),
+    geoJson: z.string().refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, "Invalid GeoJSON string format"),
+  })
+  .passthrough();
 
 // zod schema validation for markers
-const MarkerSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().min(1),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  title: z.string().min(1),
-  activity: z.string().min(1),
-  dateCreated: z.string(),
-  color: z.string().min(1),
-});
+const MarkerSchema = z
+  .object({
+    id: z.string().uuid(),
+    userId: z.string().min(1),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    title: z.string().min(1),
+    activity: z.string().min(1),
+    dateCreated: z.string(),
+    color: z.string().min(1),
+  })
+  .passthrough();
 
 // helper function to delete any object
 async function deleteItemFromTable(table: string, id: string) {
@@ -84,12 +88,13 @@ export async function saveLineToDatabase(line: LineData) {
   }
 }
 
-export async function retrieveLinesFromDB() {
+export async function retrieveLinesFromDB(): Promise<LineData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM lines ORDER BY date_created DESC",
     );
     return result.rows.map((row) => ({
+      objType: "line",
       id: row.id,
       userId: row.user_id,
       title: row.title,
@@ -161,12 +166,13 @@ export async function saveMarkerToDatabase(marker: MarkerData) {
   }
 }
 
-export async function retrieveMarkersFromDB() {
+export async function retrieveMarkersFromDB(): Promise<MarkerData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM markers ORDER BY date_created DESC",
     );
     return result.rows.map((row) => ({
+      objType: "marker",
       id: row.id,
       userId: row.user_id,
       lat: row.lat,
@@ -237,12 +243,13 @@ export async function saveShapeToDatabase(shape: ShapeData) {
   }
 }
 
-export async function retrieveShapesFromDB() {
+export async function retrieveShapesFromDB(): Promise<ShapeData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM shapes ORDER BY date_created DESC",
     );
     return result.rows.map((row) => ({
+      objType: "shape",
       id: row.id,
       userId: row.user_id,
       title: row.title,

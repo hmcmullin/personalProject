@@ -2,6 +2,7 @@
 export type MarkerData = {
   id: string;
   userId: string;
+  objType: "marker";
   lat: number;
   lng: number;
   title: string;
@@ -14,6 +15,7 @@ export type MarkerData = {
 export type LineData = {
   id: string;
   userId: string;
+  objType: "line";
   title: string;
   lat: number;
   lng: number;
@@ -27,6 +29,7 @@ export type LineData = {
 export type ShapeData = {
   id: string;
   userId: string;
+  objType: "shape";
   title: string;
   lat: number;
   lng: number;
