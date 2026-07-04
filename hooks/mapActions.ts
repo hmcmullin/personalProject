@@ -48,11 +48,18 @@ export function useMapData() {
   const handleCreateLine = async () => {
     if (currentShapePoints.length < 2) return;
 
-    const lineTitle = prompt("Enter a name for this line:");
+    const lineTitle: string | null = prompt("Enter a name for this line:");
+    if (lineTitle === null) {
+      alert("You have entered an invalid name or canceled!");
+      return;
+    }
     if (!lineTitle) return;
 
-    const lineColor = prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
-    const notes = prompt("Enter any notes or comments for this line:") || "";
+    const lineColor: string | null =
+      prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
+
+    const notes: string | null =
+      prompt("Enter any notes or comments for this line:") || "";
 
     // convert to GeoJSON's format (reverse order)
     const geoJsonCoordinates = currentShapePoints.map(([lat, lng]) => [
@@ -112,6 +119,7 @@ export function useMapData() {
         await removeLineFromDB(itemId);
         setLines((prev) => prev.filter((item) => item.id !== itemId));
       }
+      alert(`The ${type} has been successfully deleted.`);
     } catch (error) {
       console.error("Failed to delete item:", error);
     }
@@ -123,11 +131,20 @@ export function useMapData() {
   const handleCreateShape = async () => {
     if (currentShapePoints.length < 3) return;
 
-    const shapeTitle = prompt("Enter a name for this region/state:");
+    const shapeTitle: string | null = prompt(
+      "Enter a name for this region/state:",
+    );
+    if (shapeTitle === null) {
+      alert("You have entered an invalid name or canceled!");
+      return;
+    }
     if (!shapeTitle) return;
 
-    const shapeColor = prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
-    const notes = prompt("Enter any notes or comments for this region:") || "";
+    const shapeColor: string | null =
+      prompt("Enter color (e.g. 'red', '#ff0000'):") || "blue";
+
+    const notes: string | null =
+      prompt("Enter any notes or comments for this region:") || "";
 
     // convert to GeoJSON's format (reverse order)
     const geoJsonCoordinates = currentShapePoints.map(([lat, lng]) => [
@@ -185,9 +202,19 @@ export function useMapData() {
       return;
     }
 
-    const markerTitle = prompt("Enter location title:");
-    const markerActivity = prompt("Enter activity:");
-    const markerColor =
+    const markerTitle: string | null = prompt("Enter location title:");
+    if (markerTitle === null) {
+      alert("You have entered an invalid name or canceled!");
+      return;
+    }
+
+    const markerActivity: string | null = prompt("Enter activity:");
+    if (markerActivity === null) {
+      alert("You have entered an invalid activity or canceled!");
+      return;
+    }
+
+    const markerColor: string | null =
       prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
 
     // marker info structure
