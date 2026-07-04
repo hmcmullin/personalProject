@@ -48,7 +48,6 @@ type MapProps = {
   shapes: ShapeData[];
   onMapClick: (lat: number, lng: number) => void;
   isDrawingMode: boolean;
-  isDeleteMode: boolean;
   currentShapePoints: [number, number][];
   onAssetClick: (itemId: string, type: "marker" | "shape" | "line") => void;
 };
@@ -75,7 +74,6 @@ export default function Map({
   shapes,
   onMapClick,
   isDrawingMode,
-  isDeleteMode,
   currentShapePoints,
   onAssetClick,
 }: MapProps) {

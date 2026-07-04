@@ -1,5 +1,4 @@
 "use client";
-;
 import Map from "@/components/map/Map";
 import { useMapData } from "@/hooks/mapActions";
 
@@ -10,6 +9,8 @@ export default function MyPage() {
     setIsSatellite,
     isDeleteMode,
     setIsDeleteMode,
+    isUpdateMode,
+    setIsUpdateMode,
     markers,
     shapes,
     lines,
@@ -18,7 +19,7 @@ export default function MyPage() {
     currentShapePoints,
     setCurrentShapePoints,
     handleCreateLine,
-    handleDeleteItem,
+    handleAssetClick,
     handleCreateShape,
     handleMapClick,
   } = useMapData();
@@ -110,7 +111,10 @@ export default function MyPage() {
       {/* allows users to enter delete mode */}
       <div className="flex justify-center gap-4 mb-4">
         <button
-          onClick={() => setIsDeleteMode(!isDeleteMode)}
+          onClick={() => {
+            setIsDeleteMode(!isDeleteMode);
+            if (!isDeleteMode) setIsUpdateMode(false);
+          }}
           style={{
             backgroundColor: isDeleteMode ? "#dc2626" : "#3b82f6",
             color: "white",
@@ -125,6 +129,26 @@ export default function MyPage() {
         </button>
       </div>
 
+      <div className="flex justify-center gap-4 mb-4">
+        <button
+          onClick={() => {
+            setIsUpdateMode(!isUpdateMode);
+            if (!isUpdateMode) setIsDeleteMode(false);
+          }}
+          style={{
+            backgroundColor: isUpdateMode ? "#dc2626" : "#3b82f6",
+            color: "white",
+            padding: "10px 15px",
+            borderRadius: "5px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {isUpdateMode ? "Cancel Update" : "Update Item Tool"}
+        </button>
+      </div>
+
       <div
         className="flex justify-center"
         style={{ height: "800px", width: "98%", margin: "0 auto" }}
@@ -136,9 +160,8 @@ export default function MyPage() {
           shapes={shapes}
           onMapClick={handleMapClick}
           isDrawingMode={isDrawingMode}
-          isDeleteMode={isDeleteMode}
           currentShapePoints={currentShapePoints}
-          onAssetClick={handleDeleteItem}
+          onAssetClick={handleAssetClick}
         />
       </div>
     </div>
