@@ -71,7 +71,12 @@ export default function MyPage() {
               onChange={(e) => {
                 const checked = e.target.checked;
                 setIsDrawingMode(checked);
-                if (!checked) setCurrentShapePoints([]);
+                if (checked) {
+                  setIsDeleteMode(false);
+                  setIsUpdateMode(false);
+                } else {
+                  setCurrentShapePoints([]);
+                }
               }}
             />
             Drawing Mode
@@ -81,30 +86,38 @@ export default function MyPage() {
           <label className="flex items-center cursor-pointer select-none">
             <input
               type="checkbox"
-              className="mr-2 w-4 h-4 accent-red-500"
+              className="mr-2 w-4 h-4 accent-green-500"
               checked={isDeleteMode}
               onChange={(e) => {
                 const checked = e.target.checked;
                 setIsDeleteMode(checked);
-                if (checked) setIsUpdateMode(false);
+                if (checked) {
+                  setIsDrawingMode(false);
+                  setIsUpdateMode(false);
+                  setCurrentShapePoints([]);
+                }
               }}
             />
-            Delete Item Tool
+            Delete Mode
           </label>
 
           {/* allows users to enter update mode */}
           <label className="flex items-center cursor-pointer select-none">
             <input
               type="checkbox"
-              className="mr-2 w-4 h-4 accent-blue-500"
+              className="mr-2 w-4 h-4 accent-green-500"
               checked={isUpdateMode}
               onChange={(e) => {
                 const checked = e.target.checked;
                 setIsUpdateMode(checked);
-                if (checked) setIsDeleteMode(false);
+                if (checked) {
+                  setIsDrawingMode(false);
+                  setIsDeleteMode(false);
+                  setCurrentShapePoints([]);
+                }
               }}
             />
-            Update Item Tool
+            Update Mode
           </label>
 
           {isDrawingMode && (
@@ -153,3 +166,6 @@ export default function MyPage() {
     </div>
   );
 }
+
+// perhaps could put a paginated list of shapes, lines, markers
+// where they could be sorted, and clicked to focus on them

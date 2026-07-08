@@ -192,7 +192,6 @@ export function useMapData() {
     } catch (error) {
       console.error("Failed to update item:", error);
     }
-    setIsUpdateMode(false);
   };
 
   // function that handles deletion
@@ -219,8 +218,6 @@ export function useMapData() {
     } catch (error) {
       console.error("Failed to delete item:", error);
     }
-
-    setIsDeleteMode(false);
   };
 
   // if conditions met, stores points and related data to create a shape
