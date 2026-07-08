@@ -3,7 +3,7 @@ import Map from "@/components/map/Map";
 import { useMapData } from "@/hooks/mapActions";
 
 export default function MyPage() {
-  // calls mapActions hook to get all the state and handlers
+  // #region |  calls mapActions hook to get all the state and handlers
   const {
     isSatellite,
     setIsSatellite,
@@ -24,6 +24,7 @@ export default function MyPage() {
     handleMapClick,
   } = useMapData();
 
+  // #endregion
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-green-950 font-sans text-white min-h-screen">
       <h1 className="flex justify-center m-2 font-bold text-4xl">
@@ -169,3 +170,19 @@ export default function MyPage() {
 
 // perhaps could put a paginated list of shapes, lines, markers
 // where they could be sorted, and clicked to focus on them
+// allow users to manipulate map function height, width, zoom, center point
+
+/*
+
+CREATE TABLE User {
+  id SERIAL PRIMARY KEY, // maybe different for uuid
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  mapHeight INT DEFAULT 800,
+  mapWidth INT DEFAULT 800,
+  mapZoom INT DEFAULT 13,
+  mapCenterLat FLOAT DEFAULT 40.759658,
+  mapCenterLng FLOAT DEFAULT -98.915037
+}
+
+*/

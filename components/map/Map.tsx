@@ -1,5 +1,6 @@
 "use client";
 
+// #region | imports
 import {
   MapContainer,
   TileLayer,
@@ -12,9 +13,10 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJSON } from "react-leaflet";
-import { MarkerData, LineData, ShapeData } from "@/app/lib/data";
+import * as Types from "@/app/lib/data";
+// #endregion
 
-// fix leaflet css issues
+// #region | fix leaflet css issues
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -22,8 +24,9 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+// #endregion
 
-// changes color of markers, due to leaflet not having a function to do so
+// #region | changes color of markers, due to leaflet not having a function to do so
 const createColoredIcon = (color: string) => {
   const svgTemplate = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
@@ -39,20 +42,22 @@ const createColoredIcon = (color: string) => {
     popupAnchor: [0, -32],
   });
 };
+// #endregion
 
-// defines data and handlers to show map state
+// #region | defines data and handlers to show map state
 type MapProps = {
   isSatellite: boolean;
-  markers: MarkerData[];
-  lines: LineData[];
-  shapes: ShapeData[];
+  markers: Types.MarkerData[];
+  lines: Types.LineData[];
+  shapes: Types.ShapeData[];
   onMapClick: (lat: number, lng: number) => void;
   isDrawingMode: boolean;
   currentShapePoints: [number, number][];
   onAssetClick: (itemId: string, type: "marker" | "shape" | "line") => void;
 };
+// #endregion
 
-// function that on user clicking, stores coordinates where clicked
+// #region | function that on user clicking, stores coordinates where clicked
 function MapClickHandler({
   onMapClick,
 }: {
@@ -65,8 +70,8 @@ function MapClickHandler({
   });
   return null;
 }
+// #endregion
 
-// function that creates map and handles alterations
 export default function Map({
   isSatellite,
   markers,

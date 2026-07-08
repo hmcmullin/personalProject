@@ -1,40 +1,32 @@
+// #region | imports
 import { useState, useEffect } from "react";
-import {
-  saveMarkerToDatabase,
-  saveShapeToDatabase,
-  saveLineToDatabase,
-  removeMarkerFromDB,
-  removeShapeFromDB,
-  removeLineFromDB,
-  retrieveMarkersFromDB,
-  retrieveShapesFromDB,
-  retrieveLinesFromDB,
-  updateMarkerInDB,
-  updateShapeInDB,
-  updateLineInDB,
-} from "@/app/lib/actions";
-import { MarkerData, LineData, ShapeData } from "@/app/lib/data";
+import * as db from "@/app/lib/actions";
+import * as Types from "@/app/lib/data";
+// #endregion
 
 export function useMapData() {
+  // #region | state variables
   const [isSatellite, setIsSatellite] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isUpdateMode, setIsUpdateMode] = useState(false);
-  const [markers, setMarkers] = useState<MarkerData[]>([]);
-  const [shapes, setShapes] = useState<ShapeData[]>([]);
-  const [lines, setLines] = useState<LineData[]>([]);
+  const [markers, setMarkers] = useState<Types.MarkerData[]>([]);
+  const [shapes, setShapes] = useState<Types.ShapeData[]>([]);
+  const [lines, setLines] = useState<Types.LineData[]>([]);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [currentShapePoints, setCurrentShapePoints] = useState<
     [number, number][]
   >([]);
+  // #endregion
 
+  // #region | useEffect to load map data from database on component mount
   useEffect(() => {
     const loadMapData = async () => {
       try {
         const [fetchedMarkers, fetchedShapes, fetchedLines] = await Promise.all(
           [
-            retrieveMarkersFromDB(),
-            retrieveShapesFromDB(),
-            retrieveLinesFromDB(),
+            db.retrieveMarkersFromDB(),
+            db.retrieveShapesFromDB(),
+            db.retrieveLinesFromDB(),
           ],
         );
 
@@ -48,8 +40,9 @@ export function useMapData() {
 
     loadMapData();
   }, []);
+  // #endregion
 
-  // function that handles asset click events
+  // #region |  function that handles asset click events
   const handleAssetClick = async (
     itemId: string,
     type: "marker" | "shape" | "line",
@@ -77,11 +70,11 @@ export function useMapData() {
         if (targetItem.objType === "marker") {
           const activityInput = prompt(
             "Enter a new activity:",
-            (targetItem as MarkerData).activity,
+            (targetItem as Types.MarkerData).activity,
           );
           if (activityInput !== null) {
             updatedActivity =
-              activityInput || (targetItem as MarkerData).activity;
+              activityInput || (targetItem as Types.MarkerData).activity;
           }
         }
 
@@ -89,11 +82,13 @@ export function useMapData() {
         if (targetItem.objType === "line" || targetItem.objType === "shape") {
           const notesInput = prompt(
             "Enter new notes:",
-            (targetItem as LineData | ShapeData).notes || "",
+            (targetItem as Types.LineData | Types.ShapeData).notes || "",
           );
           if (notesInput !== null) {
             updatedNotes =
-              notesInput || (targetItem as LineData | ShapeData).notes || "";
+              notesInput ||
+              (targetItem as Types.LineData | Types.ShapeData).notes ||
+              "";
           }
         }
 
@@ -110,8 +105,9 @@ export function useMapData() {
       }
     }
   };
+  // #endregion
 
-  // if conditions met, stores points and related data to create a line
+  // #region | function that handles line creation
   const handleCreateLine = async () => {
     if (currentShapePoints.length < 2) return;
 
@@ -144,7 +140,7 @@ export function useMapData() {
     };
 
     // line information structure
-    const newLine: LineData = {
+    const newLine: Types.LineData = {
       id: crypto.randomUUID(),
       userId: "Temporary User",
       objType: "line",
@@ -165,36 +161,41 @@ export function useMapData() {
     setCurrentShapePoints([]);
 
     try {
-      await saveLineToDatabase(newLine);
+      await db.saveLineToDatabase(newLine);
     } catch (error) {
       console.error("Failed to save custom line to DB:", error);
     }
   };
 
-  // function that handles update
-  const handleUpdateItem = async (item: MarkerData | ShapeData | LineData) => {
+  // #endregion
+
+  // #region | function that handles update
+  const handleUpdateItem = async (
+    item: Types.MarkerData | Types.ShapeData | Types.LineData,
+  ) => {
     if (!isUpdateMode) return;
 
     try {
       if (item.objType === "marker") {
-        await updateMarkerInDB(item);
+        await db.updateMarkerInDB(item);
         // current list of markers => for loops through markers =>
         // if id matches updated item, else keep the same
         setMarkers((prev) => prev.map((m) => (m.id === item.id ? item : m)));
       } else if (item.objType === "shape") {
-        await updateShapeInDB(item);
+        await db.updateShapeInDB(item);
         setShapes((prev) => prev.map((s) => (s.id === item.id ? item : s)));
       } else if (item.objType === "line") {
-        await updateLineInDB(item);
+        await db.updateLineInDB(item);
         setLines((prev) => prev.map((l) => (l.id === item.id ? item : l)));
       }
-      alert(`The ${item.title} has been successfully updated.`);
+      alert(`The ${item.objType} has been successfully updated.`);
     } catch (error) {
       console.error("Failed to update item:", error);
     }
   };
+  // #endregion
 
-  // function that handles deletion
+  // #region | function that handles deletion
   const handleDeleteItem = async (
     itemId: string,
     type: "marker" | "shape" | "line",
@@ -203,15 +204,15 @@ export function useMapData() {
 
     try {
       if (type === "marker") {
-        await removeMarkerFromDB(itemId);
+        await db.removeMarkerFromDB(itemId);
         // current list of markers => for loops through markers =>
         // if id matches deletes item, else ignores
         setMarkers((prev) => prev.filter((item) => item.id !== itemId));
       } else if (type === "shape") {
-        await removeShapeFromDB(itemId);
+        await db.removeShapeFromDB(itemId);
         setShapes((prev) => prev.filter((item) => item.id !== itemId));
       } else if (type === "line") {
-        await removeLineFromDB(itemId);
+        await db.removeLineFromDB(itemId);
         setLines((prev) => prev.filter((item) => item.id !== itemId));
       }
       alert(`The ${type} has been successfully deleted.`);
@@ -219,8 +220,9 @@ export function useMapData() {
       console.error("Failed to delete item:", error);
     }
   };
+  // #endregion
 
-  // if conditions met, stores points and related data to create a shape
+  // #region | function that handles shape creation
   const handleCreateShape = async () => {
     if (currentShapePoints.length < 3) return;
 
@@ -259,7 +261,7 @@ export function useMapData() {
     };
 
     // shape information structure
-    const newShape: ShapeData = {
+    const newShape: Types.ShapeData = {
       id: crypto.randomUUID(),
       userId: "Temporary User",
       objType: "shape",
@@ -280,13 +282,14 @@ export function useMapData() {
     setCurrentShapePoints([]);
 
     try {
-      await saveShapeToDatabase(newShape);
+      await db.saveShapeToDatabase(newShape);
     } catch (error) {
       console.error("Failed to save custom shape to DB:", error);
     }
   };
+  // #endregion
 
-  // gathers coordinates on map click
+  // #region |  gathers coordinates on map click
   const handleMapClick = async (lat: number, lng: number) => {
     // creates array of coordinates for shapes
     if (isDeleteMode) {
@@ -315,7 +318,7 @@ export function useMapData() {
       prompt("Enter marker color (e.g., 'red', '#ff0000'):") || "blue";
 
     // marker info structure
-    const newMarker: MarkerData = {
+    const newMarker: Types.MarkerData = {
       id: crypto.randomUUID(),
       userId: "Temporary User",
       objType: "marker",
@@ -332,12 +335,15 @@ export function useMapData() {
     setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
 
     try {
-      await saveMarkerToDatabase(newMarker);
+      await db.saveMarkerToDatabase(newMarker);
     } catch (error) {
       console.error("Failed to save marker:", error);
     }
   };
 
+  // #endregion
+
+  // #region | return variables and functions to be used in the component
   return {
     isSatellite,
     setIsSatellite,
@@ -362,4 +368,5 @@ export function useMapData() {
     handleMapClick,
     handleAssetClick,
   };
+  // #endregion
 }
