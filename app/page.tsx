@@ -13,13 +13,13 @@ export default function Home() {
         </div>
         <nav className="flex justify-center gap-4 w-full">
           <a
-            href="/project/map"
+            href="/map"
             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
             Map
           </a>
           <a
-            href="/project/account"
+            href="/account"
             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
             Account

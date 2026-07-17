@@ -38,3 +38,19 @@ export type ShapeData = {
   color: string;
   geoJson: string;
 };
+
+// Form state structure for signup and recovery forms
+export type FormState =
+  | {
+      errors?: {
+        name?: string[];
+        email?: string[];
+        password?: string[];
+        recoveryCode?: string[];
+        newPassword?: string[];
+      };
+      message?: string;
+      recoveryCodeToShow?: string;
+      newRecoveryCodeToShow?: string;
+    }
+  | undefined;

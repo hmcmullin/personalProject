@@ -1,6 +1,6 @@
-import * as z from "zod";
+// @/lib/auth-helper.ts
 import { cookies } from "next/headers";
-import { query } from "@/app/lib/db";
+import { query } from "./db";
 
 export async function getSessionUser() {
   const cookieStore = await cookies();
@@ -11,7 +11,7 @@ export async function getSessionUser() {
   }
 
   try {
-    // look up the user that holds provided session token and check validity of the session
+    // finds the user associated with the session token and checks if the session is still valid
     const res = await query(
       `SELECT id, email 
        FROM users 
@@ -20,15 +20,13 @@ export async function getSessionUser() {
       [sessionId],
     );
 
-    // invalid token
     if (res.rows.length === 0) {
       return null;
     }
 
-    // return validated user details
     return res.rows[0] as { id: number; email: string };
   } catch (error) {
-    console.error("Session verification failed:", error);
+    console.error("Session verification error:", error);
     return null;
   }
 }

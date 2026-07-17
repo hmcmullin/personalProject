@@ -26,14 +26,14 @@ export default function MyPage() {
 
   // #endregion
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-green-950 font-sans text-white min-h-screen">
-      <h1 className="flex justify-center m-2 font-bold text-4xl">
+    <div className="flex flex-col flex-1 items-center justify-start bg-green-950 font-sans text-white min-h-screen">
+      <h1 className="flex justify-center m-2 pt-20 font-bold text-4xl">
         Welcome to Your Map!
       </h1>
 
       <nav className="flex justify-center m-2 w-full">
         <a
-          href="/project/account"
+          href="/account"
           className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 m-3 rounded"
         >
           Account
@@ -171,18 +171,36 @@ export default function MyPage() {
 // perhaps could put a paginated list of shapes, lines, markers
 // where they could be sorted, and clicked to focus on them
 // allow users to manipulate map function height, width, zoom, center point
+// also design a better method for cancelling draw mode
+// also perhaps allow a user to type coordinates instead of clicking on the map
+// and maybe change the size of a dot depending on the zoom level
 
 /*
 
-CREATE TABLE User {
-  id SERIAL PRIMARY KEY, // maybe different for uuid
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  mapHeight INT DEFAULT 800,
-  mapWidth INT DEFAULT 800,
-  mapZoom INT DEFAULT 13,
-  mapCenterLat FLOAT DEFAULT 40.759658,
-  mapCenterLng FLOAT DEFAULT -98.915037
-}
+-- 1. Core Authentication Table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) DEFAULT 'User',
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    recovery_code VARCHAR(255) NOT NULL,
+    session_token VARCHAR(255),
+    session_expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
+-- 2. App Settings Table (Linked via Foreign Key)
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    map_height INT DEFAULT 800,
+    map_width INT DEFAULT 800,
+    map_zoom INT DEFAULT 13,
+    map_center_lat DOUBLE PRECISION DEFAULT 40.759658,
+    map_center_lng DOUBLE PRECISION DEFAULT -98.915037
+);
+
+-- Lookups for fast queries
+CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 */

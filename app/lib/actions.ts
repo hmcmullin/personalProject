@@ -2,16 +2,17 @@
 
 import { Pool } from "pg";
 import { z } from "zod";
-import { MarkerData, LineData, ShapeData } from "./data";
+import * as Types from "./data";
 
-// db connection
+// #region | db connection
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
     "postgresql://admin:password@localhost:5432/personalProjectDB",
 });
+//#endregion
 
-// zod schema validation for lines and shapes
+// #region | zod schema validation for lines and shapes
 const ObjectSchema = z
   .object({
     id: z.string().uuid(),
@@ -46,8 +47,9 @@ const MarkerSchema = z
     color: z.string().min(1),
   })
   .passthrough();
+//#endregion
 
-// helper function to delete any object
+// #region | helper function to delete any object
 async function deleteItemFromTable(table: string, id: string) {
   try {
     const result = await pool.query(
@@ -60,9 +62,10 @@ async function deleteItemFromTable(table: string, id: string) {
     return null;
   }
 }
+// #endregion
 
-// line functions
-export async function saveLineToDatabase(line: LineData) {
+// #region | line functions
+export async function saveLineToDatabase(line: Types.LineData) {
   const validated = ObjectSchema.parse(line);
   try {
     const query = `
@@ -88,7 +91,7 @@ export async function saveLineToDatabase(line: LineData) {
   }
 }
 
-export async function retrieveLinesFromDB(): Promise<LineData[]> {
+export async function retrieveLinesFromDB(): Promise<Types.LineData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM lines ORDER BY date_created DESC",
@@ -111,7 +114,7 @@ export async function retrieveLinesFromDB(): Promise<LineData[]> {
   }
 }
 
-export async function updateLineInDB(line: LineData) {
+export async function updateLineInDB(line: Types.LineData) {
   const validated = ObjectSchema.parse(line);
   try {
     const query = `
@@ -139,9 +142,10 @@ export async function updateLineInDB(line: LineData) {
 export async function removeLineFromDB(id: string) {
   return deleteItemFromTable("lines", id);
 }
+// #endregion
 
-// marker functions
-export async function saveMarkerToDatabase(marker: MarkerData) {
+// #region | marker functions
+export async function saveMarkerToDatabase(marker: Types.MarkerData) {
   const validated = MarkerSchema.parse(marker);
   try {
     const query = `
@@ -166,7 +170,7 @@ export async function saveMarkerToDatabase(marker: MarkerData) {
   }
 }
 
-export async function retrieveMarkersFromDB(): Promise<MarkerData[]> {
+export async function retrieveMarkersFromDB(): Promise<Types.MarkerData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM markers ORDER BY date_created DESC",
@@ -188,7 +192,7 @@ export async function retrieveMarkersFromDB(): Promise<MarkerData[]> {
   }
 }
 
-export async function updateMarkerInDB(marker: MarkerData) {
+export async function updateMarkerInDB(marker: Types.MarkerData) {
   const validated = MarkerSchema.parse(marker);
   try {
     const query = `
@@ -215,9 +219,10 @@ export async function updateMarkerInDB(marker: MarkerData) {
 export async function removeMarkerFromDB(id: string) {
   return deleteItemFromTable("markers", id);
 }
+// #endregion
 
-// shape functions
-export async function saveShapeToDatabase(shape: ShapeData) {
+// #region | shape functions
+export async function saveShapeToDatabase(shape: Types.ShapeData) {
   const validated = ObjectSchema.parse(shape);
   try {
     const query = `
@@ -243,7 +248,7 @@ export async function saveShapeToDatabase(shape: ShapeData) {
   }
 }
 
-export async function retrieveShapesFromDB(): Promise<ShapeData[]> {
+export async function retrieveShapesFromDB(): Promise<Types.ShapeData[]> {
   try {
     const result = await pool.query(
       "SELECT * FROM shapes ORDER BY date_created DESC",
@@ -266,7 +271,7 @@ export async function retrieveShapesFromDB(): Promise<ShapeData[]> {
   }
 }
 
-export async function updateShapeInDB(shape: ShapeData) {
+export async function updateShapeInDB(shape: Types.ShapeData) {
   const validated = ObjectSchema.parse(shape);
   try {
     const query = `
@@ -294,3 +299,35 @@ export async function updateShapeInDB(shape: ShapeData) {
 export async function removeShapeFromDB(id: string) {
   return deleteItemFromTable("shapes", id);
 }
+// #endregion
+
+// #region | user functions
+// export async function updateMapZoom(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateMapLat(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateMapLong(id: string) { // possibly can be done in one function
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateMapHeight(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateMapWidth(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateUserEmail(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// export async function updateUserPassword(id: string) {
+//   return deleteItemFromTable("shapes", id);
+// }
+
+// #endregion

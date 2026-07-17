@@ -86,7 +86,7 @@ export default function Map({
     <MapContainer
       center={[40.759658, -98.915037]}
       zoom={13}
-      style={{ height: "100%", width: "100%", minHeight: "800px" }}
+      style={{ height: "100%", width: "100%", minHeight: "900px" }}
     >
       {/* isSatellite {true tileLayer=satellite} else {tileLayer=basic} */}
       {isSatellite ? (
