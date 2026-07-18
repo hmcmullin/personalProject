@@ -2,10 +2,12 @@
 import { useState, useEffect } from "react";
 import * as db from "@/app/lib/actions";
 import * as Types from "@/app/lib/data";
+import { getSessionUser } from "@/auth";
 // #endregion
 
 export function useMapData() {
   // #region | state variables
+  const [userId, setUserId] = useState<string>("Temporary User");
   const [isSatellite, setIsSatellite] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isUpdateMode, setIsUpdateMode] = useState(false);
@@ -22,11 +24,17 @@ export function useMapData() {
   useEffect(() => {
     const loadMapData = async () => {
       try {
+        const user = await getSessionUser();
+        if (!user?.id) return;
+
+        const currentId = String(user.id);
+        setUserId(currentId);
+
         const [fetchedMarkers, fetchedShapes, fetchedLines] = await Promise.all(
           [
-            db.retrieveMarkersFromDB(),
-            db.retrieveShapesFromDB(),
-            db.retrieveLinesFromDB(),
+            db.retrieveMarkersFromDB(currentId),
+            db.retrieveShapesFromDB(currentId),
+            db.retrieveLinesFromDB(currentId),
           ],
         );
 
@@ -142,7 +150,7 @@ export function useMapData() {
     // line information structure
     const newLine: Types.LineData = {
       id: crypto.randomUUID(),
-      userId: "Temporary User",
+      userId: userId,
       objType: "line",
       title: lineTitle,
       notes: notes,
@@ -204,15 +212,15 @@ export function useMapData() {
 
     try {
       if (type === "marker") {
-        await db.removeMarkerFromDB(itemId);
+        await db.removeMarkerFromDB(itemId, userId);
         // current list of markers => for loops through markers =>
         // if id matches deletes item, else ignores
         setMarkers((prev) => prev.filter((item) => item.id !== itemId));
       } else if (type === "shape") {
-        await db.removeShapeFromDB(itemId);
+        await db.removeShapeFromDB(itemId, userId);
         setShapes((prev) => prev.filter((item) => item.id !== itemId));
       } else if (type === "line") {
-        await db.removeLineFromDB(itemId);
+        await db.removeLineFromDB(itemId, userId);
         setLines((prev) => prev.filter((item) => item.id !== itemId));
       }
       alert(`The ${type} has been successfully deleted.`);
@@ -263,7 +271,7 @@ export function useMapData() {
     // shape information structure
     const newShape: Types.ShapeData = {
       id: crypto.randomUUID(),
-      userId: "Temporary User",
+      userId: userId,
       objType: "shape",
       title: shapeTitle,
       notes: notes,
@@ -320,7 +328,7 @@ export function useMapData() {
     // marker info structure
     const newMarker: Types.MarkerData = {
       id: crypto.randomUUID(),
-      userId: "Temporary User",
+      userId: userId,
       objType: "marker",
       lat: lat,
       lng: lng,

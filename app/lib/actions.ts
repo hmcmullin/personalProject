@@ -50,11 +50,11 @@ const MarkerSchema = z
 //#endregion
 
 // #region | helper function to delete any object
-async function deleteItemFromTable(table: string, id: string) {
+async function deleteItemFromTable(table: string, id: string, userId: string) {
   try {
     const result = await pool.query(
-      `DELETE FROM ${table} WHERE id = $1 RETURNING *`,
-      [id],
+      `DELETE FROM ${table} WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, userId],
     );
     return result.rows[0] || null;
   } catch (error) {
@@ -65,6 +65,7 @@ async function deleteItemFromTable(table: string, id: string) {
 // #endregion
 
 // #region | line functions
+
 export async function saveLineToDatabase(line: Types.LineData) {
   const validated = ObjectSchema.parse(line);
   try {
@@ -91,10 +92,11 @@ export async function saveLineToDatabase(line: Types.LineData) {
   }
 }
 
-export async function retrieveLinesFromDB(): Promise<Types.LineData[]> {
+export async function retrieveLinesFromDB(userId: string): Promise<Types.LineData[]> {
   try {
     const result = await pool.query(
-      "SELECT * FROM lines ORDER BY date_created DESC",
+      "SELECT * FROM lines WHERE user_id = $1 ORDER BY date_created DESC",
+      [userId],
     );
     return result.rows.map((row) => ({
       objType: "line",
@@ -120,7 +122,7 @@ export async function updateLineInDB(line: Types.LineData) {
     const query = `
       UPDATE lines 
       SET title = $1, notes = $2, lat = $3, lng = $4, color = $5, geojson = $6
-      WHERE id = $7
+      WHERE id = $7 AND user_id = $8
     `;
     const values = [
       validated.title,
@@ -130,6 +132,7 @@ export async function updateLineInDB(line: Types.LineData) {
       validated.color,
       validated.geoJson,
       validated.id,
+      validated.userId,
     ];
     await pool.query(query, values);
     console.log("Line successfully updated");
@@ -139,12 +142,13 @@ export async function updateLineInDB(line: Types.LineData) {
   }
 }
 
-export async function removeLineFromDB(id: string) {
-  return deleteItemFromTable("lines", id);
+export async function removeLineFromDB(id: string, userId: string) {
+  return deleteItemFromTable("lines", id, userId);
 }
 // #endregion
 
 // #region | marker functions
+
 export async function saveMarkerToDatabase(marker: Types.MarkerData) {
   const validated = MarkerSchema.parse(marker);
   try {
@@ -170,10 +174,11 @@ export async function saveMarkerToDatabase(marker: Types.MarkerData) {
   }
 }
 
-export async function retrieveMarkersFromDB(): Promise<Types.MarkerData[]> {
+export async function retrieveMarkersFromDB(userId: string): Promise<Types.MarkerData[]> {
   try {
     const result = await pool.query(
-      "SELECT * FROM markers ORDER BY date_created DESC",
+      "SELECT * FROM markers WHERE user_id = $1 ORDER BY date_created DESC",
+      [userId],
     );
     return result.rows.map((row) => ({
       objType: "marker",
@@ -198,7 +203,7 @@ export async function updateMarkerInDB(marker: Types.MarkerData) {
     const query = `
       UPDATE markers 
       SET lat = $1, lng = $2, title = $3, activity = $4, color = $5
-      WHERE id = $6
+      WHERE id = $6 AND user_id = $7
     `;
     const values = [
       validated.lat,
@@ -207,6 +212,7 @@ export async function updateMarkerInDB(marker: Types.MarkerData) {
       validated.activity,
       validated.color,
       validated.id,
+      validated.userId,
     ];
     await pool.query(query, values);
     console.log("Marker successfully updated");
@@ -216,12 +222,13 @@ export async function updateMarkerInDB(marker: Types.MarkerData) {
   }
 }
 
-export async function removeMarkerFromDB(id: string) {
-  return deleteItemFromTable("markers", id);
+export async function removeMarkerFromDB(id: string, userId: string) {
+  return deleteItemFromTable("markers", id, userId);
 }
 // #endregion
 
 // #region | shape functions
+
 export async function saveShapeToDatabase(shape: Types.ShapeData) {
   const validated = ObjectSchema.parse(shape);
   try {
@@ -248,10 +255,11 @@ export async function saveShapeToDatabase(shape: Types.ShapeData) {
   }
 }
 
-export async function retrieveShapesFromDB(): Promise<Types.ShapeData[]> {
+export async function retrieveShapesFromDB(userId: string): Promise<Types.ShapeData[]> {
   try {
     const result = await pool.query(
-      "SELECT * FROM shapes ORDER BY date_created DESC",
+      "SELECT * FROM shapes WHERE user_id = $1 ORDER BY date_created DESC",
+      [userId],
     );
     return result.rows.map((row) => ({
       objType: "shape",
@@ -277,7 +285,7 @@ export async function updateShapeInDB(shape: Types.ShapeData) {
     const query = `
       UPDATE shapes 
       SET title = $1, notes = $2, lat = $3, lng = $4, color = $5, geojson = $6
-      WHERE id = $7
+      WHERE id = $7 AND user_id = $8
     `;
     const values = [
       validated.title,
@@ -287,6 +295,7 @@ export async function updateShapeInDB(shape: Types.ShapeData) {
       validated.color,
       validated.geoJson,
       validated.id,
+      validated.userId,
     ];
     await pool.query(query, values);
     console.log("Shape successfully updated");
@@ -296,8 +305,8 @@ export async function updateShapeInDB(shape: Types.ShapeData) {
   }
 }
 
-export async function removeShapeFromDB(id: string) {
-  return deleteItemFromTable("shapes", id);
+export async function removeShapeFromDB(id: string, userId: string) {
+  return deleteItemFromTable("shapes", id, userId);
 }
 // #endregion
 
