@@ -22,7 +22,7 @@ export default function CreateAccountPage() {
     }
   };
 
-  // 1. signUp successful, provide recovery code
+  // signUp successful, provide recovery code
   if (state?.recoveryCodeToShow) {
     return (
       <main className="flex items-center justify-center min-h-screen bg-green-950 font-sans text-white px-4">
@@ -60,7 +60,7 @@ export default function CreateAccountPage() {
     );
   }
 
-  // 2. signUp Form
+  // signUp Form
   return (
     <main className="flex items-center justify-center min-h-screen bg-green-950 font-sans text-white">
       <div className="relative mx-auto flex w-full max-w-[400px] flex-col space-y-4 p-6 bg-gray-900/80 border border-gray-700 rounded-xl shadow-2xl">
@@ -78,7 +78,6 @@ export default function CreateAccountPage() {
               {localError || state?.message}
             </p>
           )}
-          <input type="hidden" name="name" value="User" />
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">

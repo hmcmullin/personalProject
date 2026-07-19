@@ -12,6 +12,7 @@ export function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get("session_id")?.value;
 
   // return logged in users to the home page if they try to access a public route
+  // may want to in future return user to login, and log user out
   if (isPublicPath && sessionToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
@@ -24,15 +25,15 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// export const config = {
-//   matcher: [
-//     /*
-//      * Match all request paths except for the ones starting with:
-//      * - api (API routes)
-//      * - _next/static (static files)
-//      * - _next/image (image optimization files)
-//      * - favicon.ico (favicon file)
-//      */
-//     "/((?!api|_next/static|_next/image|favicon.ico).*)",
-//   ],
-// };
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
+};

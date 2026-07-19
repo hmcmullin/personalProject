@@ -1,15 +1,20 @@
 "use server";
 
+// #region | imports
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { query } from "@/app/lib/db";
-import { SignupFormSchema, RecoveryFormSchema } from "@/app/lib/schemas";
+import {
+  SignupFormSchema,
+  LoginFormSchema,
+  RecoveryFormSchema,
+} from "@/app/lib/schemas";
 import { FormState } from "@/app/lib/data";
+// #endregion
 
-// creates a random recovery code (e.g. ABCD-1234-EFGH)
-// may want to ensure uniqueness in the future, but this works temporarily
+// #region | generates recovery code
 function generateRecoveryCode(): string {
   return (
     crypto
@@ -21,6 +26,9 @@ function generateRecoveryCode(): string {
   );
 }
 
+// #endregion
+
+// #region | creates a session for the user
 async function registerUserSession(userId: number) {
   const sessionId = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date();
@@ -43,6 +51,9 @@ async function registerUserSession(userId: number) {
   });
 }
 
+// #endregion
+
+// #region | retrieves users session
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
@@ -71,15 +82,17 @@ export async function getSessionUser() {
   }
 }
 
+// #endregion
+
+// #region | creates user upon signup
 export async function signupAction(
   state: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const validatedFields = SignupFormSchema.safeParse({ name, email, password });
+  const validatedFields = SignupFormSchema.safeParse({ email, password });
 
   if (!validatedFields.success) {
     return {
@@ -87,14 +100,12 @@ export async function signupAction(
     };
   }
 
+  const { email: validEmail, password: validPassword } = validatedFields.data;
   const recoveryCode = generateRecoveryCode();
-  let newUser: { id: number } | null = null;
 
   try {
-    const formattedEmail = email.toLowerCase().trim();
-
     const existingUser = await query("SELECT id FROM users WHERE email = $1", [
-      formattedEmail,
+      validEmail,
     ]);
     if (existingUser.rows.length > 0) {
       return {
@@ -103,28 +114,29 @@ export async function signupAction(
     }
 
     const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const passwordHash = await bcrypt.hash(validPassword, saltRounds);
 
-    // insert user into db
     const insertRes = await query(
-      `INSERT INTO users (name, email, password_hash, recovery_code) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO users (email, password_hash, recovery_code) 
+       VALUES ($1, $2, $3) 
        RETURNING id`,
-      [name || "User", formattedEmail, passwordHash, recoveryCode],
-    );
-    newUser = insertRes.rows[0];
-
-    // insert default user settings into db
-    await query(
-      `INSERT INTO user_settings (user_id) 
-       VALUES ($1)`,
-      [newUser!.id],
+      [validEmail, passwordHash, recoveryCode],
     );
 
-    await registerUserSession(newUser!.id);
+    const newUser = insertRes.rows[0] as { id: number } | undefined;
+
+    if (!newUser) {
+      return { message: "Account creation failed. Please try again." };
+    }
+
+    await query(`INSERT INTO user_settings (user_id) VALUES ($1)`, [
+      newUser.id,
+    ]);
+    await registerUserSession(newUser.id);
   } catch (error: any) {
     console.error("Sign up error detailed:", error);
-    return { message: `Signup Error: ${error.message || error}` };
+    // return { message: `Signup Error: ${error.message || error}` }; // Temporary troubleshooting message
+    return { message: "An unexpected error occurred. Please try again." };
   }
 
   return {
@@ -132,6 +144,9 @@ export async function signupAction(
   };
 }
 
+// #endregion
+
+// #region | logs a user into their account
 export async function loginAction(
   state: FormState,
   formData: FormData,
@@ -139,15 +154,19 @@ export async function loginAction(
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  if (!email || !password) {
-    return { message: "Email and password are required." };
+  const validatedFields = LoginFormSchema.safeParse({ email, password });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
   }
 
-  try {
-    const formattedEmail = email.toLowerCase().trim();
+  const { email: validEmail, password: validPassword } = validatedFields.data;
 
+  try {
     const userRes = await query("SELECT * FROM users WHERE email = $1", [
-      formattedEmail,
+      validEmail,
     ]);
     const user = userRes.rows[0];
 
@@ -156,7 +175,7 @@ export async function loginAction(
     }
 
     const isPasswordCorrect = await bcrypt.compare(
-      password,
+      validPassword,
       user.password_hash,
     );
     if (!isPasswordCorrect) {
@@ -166,12 +185,17 @@ export async function loginAction(
     await registerUserSession(user.id);
   } catch (error: any) {
     console.error("Login error detailed:", error);
-    return { message: `Login Error: ${error.message || error}` };
+    // return { message: `Login Error: ${error.message || error}` }; // Temporary troubleshooting message
+    return { message: "An unexpected error occurred. Please try again." };
   }
 
   redirect("/");
 }
 
+// #endregion
+
+// #region | logs a user out
+// needs a method to actually allow a user to logout in app
 export async function logoutAction() {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
@@ -188,7 +212,9 @@ export async function logoutAction() {
   cookieStore.delete("session_id");
   redirect("/login");
 }
+// #endregion
 
+// #region | recovery code login/reset password
 export async function recoverPasswordAction(
   state: FormState,
   formData: FormData,
@@ -209,15 +235,17 @@ export async function recoverPasswordAction(
     };
   }
 
-  const cleanCode = recoveryCode.trim().toUpperCase();
+  const {
+    email: validEmail,
+    recoveryCode: validCode,
+    newPassword: validPassword,
+  } = validatedFields.data;
   const newRecoveryCode = generateRecoveryCode();
 
   try {
-    const formattedEmail = email.toLowerCase().trim();
-
     const userRes = await query(
       `SELECT id FROM users WHERE email = $1 AND recovery_code = $2`,
-      [formattedEmail, cleanCode],
+      [validEmail, validCode],
     );
     const user = userRes.rows[0];
 
@@ -226,7 +254,7 @@ export async function recoverPasswordAction(
     }
 
     const saltRounds = 10;
-    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+    const newPasswordHash = await bcrypt.hash(validPassword, saltRounds);
 
     await query(
       `UPDATE users 
@@ -239,10 +267,13 @@ export async function recoverPasswordAction(
     );
   } catch (error: any) {
     console.error("Recovery error detailed:", error);
-    return { message: `Recovery Error: ${error.message || error}` };
+    // return { message: `Recovery Error: ${error.message || error}` }; // Temporary troubleshooting message
+    return { message: "An unexpected error occurred. Please try again." };
   }
 
   return {
     newRecoveryCodeToShow: newRecoveryCode,
   };
 }
+
+// #endregion

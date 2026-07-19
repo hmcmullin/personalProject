@@ -1,12 +1,12 @@
-// app/lib/schemas.ts
 import * as z from "zod";
 
+// validates signup data
 export const SignupFormSchema = z.object({
-  name: z
+  email: z
     .string()
-    .min(2, { message: "Name must be at least 2 characters long." })
-    .trim(),
-  email: z.string().email({ message: "Please enter a valid email." }).trim(),
+    .email({ message: "Please enter a valid email." })
+    .trim()
+    .toLowerCase(),
   password: z
     .string()
     .min(8, { message: "Be at least 8 characters long" })
@@ -18,12 +18,28 @@ export const SignupFormSchema = z.object({
     .trim(),
 });
 
+// validates login data
+export const LoginFormSchema = z.object({
+  email: z
+    .string()
+    .email({ message: "Please enter a valid email." })
+    .trim()
+    .toLowerCase(),
+  password: z.string().min(1, { message: "Password is required." }),
+});
+
+// validates recovery data
 export const RecoveryFormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }).trim(),
+  email: z
+    .string()
+    .email({ message: "Please enter a valid email." })
+    .trim()
+    .toLowerCase(),
   recoveryCode: z
     .string()
     .min(1, { message: "Recovery code is required." })
-    .trim(),
+    .trim()
+    .transform((val) => val.toUpperCase()),
   newPassword: z
     .string()
     .min(8, { message: "Be at least 8 characters long" })
