@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
 
   // public routes that don't require authentication
   const isPublicPath =
-    path === "/login" || path === "/signUp" || path === "/recover";
+    path === "/login" || path === "/signUp" || path === "/recovery";
 
   // grab the session token from the cookies
   const sessionToken = request.cookies.get("session_id")?.value;
