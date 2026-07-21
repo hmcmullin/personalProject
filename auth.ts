@@ -14,7 +14,7 @@ import {
 import { FormState } from "@/app/lib/data";
 // #endregion
 
-// #region | generates recovery code
+// #region | generates recovery code / hash token
 function generateRecoveryCode(): string {
   return (
     crypto
@@ -26,11 +26,17 @@ function generateRecoveryCode(): string {
   );
 }
 
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 // #endregion
 
 // #region | creates a session for the user
 async function registerUserSession(userId: number) {
-  const sessionId = crypto.randomBytes(32).toString("hex");
+  const rawSessionToken = crypto.randomBytes(32).toString("hex");
+  const hashedSessionToken = hashToken(rawSessionToken);
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -38,11 +44,11 @@ async function registerUserSession(userId: number) {
     `UPDATE users 
      SET session_token = $1, session_expires_at = $2 
      WHERE id = $3`,
-    [sessionId, expiresAt, userId],
+    [hashedSessionToken, expiresAt, userId],
   );
 
   const cookieStore = await cookies();
-  cookieStore.set("session_id", sessionId, {
+  cookieStore.set("session_id", rawSessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -56,11 +62,13 @@ async function registerUserSession(userId: number) {
 // #region | retrieves users session
 export async function getSessionUser() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("session_id")?.value;
+  const rawSessionToken = cookieStore.get("session_id")?.value;
 
-  if (!sessionId) {
+  if (!rawSessionToken) {
     return null;
   }
+
+  const hashedSessionToken = hashToken(rawSessionToken);
 
   try {
     const res = await query(
@@ -68,7 +76,7 @@ export async function getSessionUser() {
        FROM users 
        WHERE session_token = $1 
          AND session_expires_at > NOW()`,
-      [sessionId],
+      [hashedSessionToken],
     );
 
     if (res.rows.length === 0) {
@@ -102,6 +110,7 @@ export async function signupAction(
 
   const { email: validEmail, password: validPassword } = validatedFields.data;
   const recoveryCode = generateRecoveryCode();
+  const recoveryHash = await bcrypt.hash(recoveryCode, 10);
 
   try {
     const existingUser = await query("SELECT id FROM users WHERE email = $1", [
@@ -120,7 +129,7 @@ export async function signupAction(
       `INSERT INTO users (email, password_hash, recovery_code) 
        VALUES ($1, $2, $3) 
        RETURNING id`,
-      [validEmail, passwordHash, recoveryCode],
+      [validEmail, passwordHash, recoveryHash],
     );
 
     const newUser = insertRes.rows[0] as { id: number } | undefined;
@@ -198,14 +207,15 @@ export async function loginAction(
 // needs a method to actually allow a user to logout in app
 export async function logoutAction() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("session_id")?.value;
+  const rawSessionToken = cookieStore.get("session_id")?.value;
 
-  if (sessionId) {
+  if (rawSessionToken) {
+    const hashedSessionToken = hashToken(rawSessionToken);
     await query(
       `UPDATE users 
        SET session_token = NULL, session_expires_at = NULL 
        WHERE session_token = $1`,
-      [sessionId],
+      [hashedSessionToken],
     );
   }
 
@@ -240,22 +250,34 @@ export async function recoverPasswordAction(
     recoveryCode: validCode,
     newPassword: validPassword,
   } = validatedFields.data;
-  const newRecoveryCode = generateRecoveryCode();
 
   try {
     const userRes = await query(
-      `SELECT id FROM users WHERE email = $1 AND recovery_code = $2`,
-      [validEmail, validCode],
+      `SELECT id, recovery_code FROM users WHERE email = $1`,
+      [validEmail],
     );
     const user = userRes.rows[0];
 
-    if (!user) {
+    if (!user || !user.recovery_code) {
       return { message: "Invalid email or recovery code." };
     }
 
+    const isCodeValid = await bcrypt.compare(validCode, user.recovery_code);
+    if (!isCodeValid) {
+      return { message: "Invalid email or recovery code." };
+    }
+
+    // 3. Hash new password and generate/hash new recovery code
     const saltRounds = 10;
     const newPasswordHash = await bcrypt.hash(validPassword, saltRounds);
 
+    const newRecoveryCode = generateRecoveryCode();
+    const newHashedRecoveryCode = await bcrypt.hash(
+      newRecoveryCode,
+      saltRounds,
+    );
+
+  
     await query(
       `UPDATE users 
        SET password_hash = $1, 
@@ -263,17 +285,15 @@ export async function recoverPasswordAction(
            session_token = NULL, 
            session_expires_at = NULL 
        WHERE id = $3`,
-      [newPasswordHash, newRecoveryCode, user.id],
+      [newPasswordHash, newHashedRecoveryCode, user.id],
     );
+
+    return {
+      newRecoveryCodeToShow: newRecoveryCode, 
+    };
   } catch (error: any) {
     console.error("Recovery error detailed:", error);
-    // return { message: `Recovery Error: ${error.message || error}` }; // Temporary troubleshooting message
     return { message: "An unexpected error occurred. Please try again." };
   }
-
-  return {
-    newRecoveryCodeToShow: newRecoveryCode,
-  };
 }
-
 // #endregion

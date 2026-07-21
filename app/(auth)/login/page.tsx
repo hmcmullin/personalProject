@@ -44,11 +44,20 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* should improve ui here at some point */}
           <div className="text-center pt-2">
             <p className="text-xs text-gray-400">
               Don't have an account?{" "}
               <a href="/signUp" className="text-green-400 hover:underline">
                 Sign Up
+              </a>
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400">
+              Forgot your Password?{"  "}
+              <a href="/recovery" className="text-green-400 hover:underline">
+                Recovery
               </a>
             </p>
           </div>

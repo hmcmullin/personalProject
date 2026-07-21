@@ -44,9 +44,6 @@ export default function CreateAccountPage() {
             <div className="bg-black/40 text-green-400 font-mono text-2xl tracking-widest py-3 px-2 rounded border border-green-900/50 select-all">
               {state.recoveryCodeToShow}
             </div>
-            <p className="text-[10px] text-gray-500 mt-2">
-              Double click to select, then copy (Ctrl+C / Cmd+C)
-            </p>
           </div>
 
           <button
